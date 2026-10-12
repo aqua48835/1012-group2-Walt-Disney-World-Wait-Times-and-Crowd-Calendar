@@ -9,7 +9,7 @@ plt.rcParams['font.sans-serif'] = ['WenQuanYi Zen Hei']
 plt.rcParams['axes.unicode_minus'] = False
 
 # 页面标题+小组名称（替换成你们小组真实名称）
-st.title("Disney World 乐园运营仪表盘 | 小组名称：XXX")
+st.title("Disney World 乐园运营仪表盘 | 小组名称：1012-group2")
 # 单行说明：面向角色+核心决策（贴合作业要求）
 st.caption("面向角色：迪士尼乐园运营经理 | 支撑决策：根据客流拥挤度调整人力配置与设施开放计划")
 
