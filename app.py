@@ -126,34 +126,16 @@ ax1.legend()
 ax1.grid(True, alpha=0.3)
 st.pyplot(fig1)
 
-# ---------------------- 图表2：分组对比（修复空白画布Bug） ----------------------
-st.markdown(f"### Crowd Factor Analysis")
-use_event = "has_special_event" in filtered_calendar.columns and filtered_calendar["has_special_event"].nunique() > 1
-
-if use_event:
-    group_col = "has_special_event"
-    factor_crowd = filtered_calendar.groupby(group_col)["crowd_level_pct"].mean().reset_index()
-    factor_crowd[group_col] = factor_crowd[group_col].map({True: "With Special Event", False: "No Special Event"})
-    title = "Impact of Special Events on Crowd Level"
+# ---------------------- Crowd Factor Analysis：表格版（替代原来空白柱状图） ----------------------
+st.markdown("### Crowd Factor Analysis")
+if "is_weekend" in filtered_calendar.columns:
+    factor_table = filtered_calendar.groupby("is_weekend")["crowd_level_pct"].agg(["mean", "count"]).reset_index()
+    factor_table["is_weekend"] = factor_table["is_weekend"].map({True: "Weekend", False: "Weekday"})
+    factor_table.columns = ["Day Type", "Avg Crowd Level (%)", "Date Count"]
+    factor_table["Avg Crowd Level (%)"] = factor_table["Avg Crowd Level (%)"].round(1)
+    st.dataframe(factor_table, use_container_width=True)
 else:
-    group_col = "is_weekend"
-    factor_crowd = filtered_calendar.groupby(group_col)["crowd_level_pct"].mean().reset_index()
-    factor_crowd[group_col] = factor_crowd[group_col].map({True: "Weekend", False: "Weekday"})
-    title = "Crowd Level: Weekend vs Weekday"
-
-# 只有≥2组才画图，否则提示文字，避免空白图
-if len(factor_crowd) < 2:
-    st.info("ℹ️ Not enough comparison groups under current filter. Try changing your filter (e.g. All Dates).")
-else:
-    fig2, ax2 = plt.subplots(figsize=(8, 4))
-    bars = ax2.bar(factor_crowd[group_col], factor_crowd["crowd_level_pct"], color=["#ff7f0e", "#2ca02c"])
-    ax2.set_ylim(0,100)
-    ax2.set_ylabel("Average Crowd Level (%)")
-    ax2.set_title(title)
-    for bar in bars:
-        h = bar.get_height()
-        ax2.text(bar.get_x()+bar.get_width()/2, h+1, f"{h:.0f}%", ha="center")
-    st.pyplot(fig2)
+    st.info("Day type data is not available in the current dataset.")
 
 # ---------------------- 热门设施等待时间表格（加列判断） ----------------------
 st.markdown("### Top Rides: Average Wait Time")
