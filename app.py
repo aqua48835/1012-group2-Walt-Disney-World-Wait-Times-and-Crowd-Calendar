@@ -80,18 +80,16 @@ col1, col2, col3 = st.columns(3)
 avg_crowd = filtered_calendar["crowd_level_pct"].mean()
 avg_operating_hours = (filtered_calendar["operating_minutes"].mean()) / 60
 
-# ========== FIX: 先判断status列是否存在，不存在就替换成别的KPI ==========
+# ========== 列存在性判断，防止KeyError ==========
 total_rides = filtered_ride["ride_name"].nunique() if "ride_name" in filtered_ride.columns else 0
 operation_rate = 0
+avg_wait = 0
 if "status" in filtered_ride.columns:
     operational_rides = filtered_ride[filtered_ride["status"] == "operational"]["ride_name"].nunique()
     operation_rate = (operational_rides / total_rides) * 100 if total_rides > 0 else 0
 else:
-    # 没有status列，改用【平均等待时间】作为第三个KPI兜底
     if "wait_time_min" in filtered_ride.columns and len(filtered_ride) > 0:
         avg_wait = filtered_ride["wait_time_min"].mean()
-    else:
-        avg_wait = 0
 
 with col1:
     st.metric("Avg Crowd Level (%)", f"{avg_crowd:.0f}%")
@@ -128,26 +126,34 @@ ax1.legend()
 ax1.grid(True, alpha=0.3)
 st.pyplot(fig1)
 
-# ---------------------- 图表2：分组对比（周末/活动） ----------------------
+# ---------------------- 图表2：分组对比（修复空白画布Bug） ----------------------
 st.markdown(f"### Crowd Factor Analysis")
-if "has_special_event" in filtered_calendar.columns and filtered_calendar["has_special_event"].sum() > 0:
-    factor_crowd = filtered_calendar.groupby("has_special_event")["crowd_level_pct"].mean().reset_index()
-    factor_crowd["has_special_event"] = factor_crowd["has_special_event"].map({True: "With Special Event", False: "No Special Event"})
+use_event = "has_special_event" in filtered_calendar.columns and filtered_calendar["has_special_event"].nunique() > 1
+
+if use_event:
+    group_col = "has_special_event"
+    factor_crowd = filtered_calendar.groupby(group_col)["crowd_level_pct"].mean().reset_index()
+    factor_crowd[group_col] = factor_crowd[group_col].map({True: "With Special Event", False: "No Special Event"})
     title = "Impact of Special Events on Crowd Level"
 else:
-    factor_crowd = filtered_calendar.groupby("is_weekend")["crowd_level_pct"].mean().reset_index()
-    factor_crowd["is_weekend"] = factor_crowd["is_weekend"].map({True: "Weekend", False: "Weekday"})
+    group_col = "is_weekend"
+    factor_crowd = filtered_calendar.groupby(group_col)["crowd_level_pct"].mean().reset_index()
+    factor_crowd[group_col] = factor_crowd[group_col].map({True: "Weekend", False: "Weekday"})
     title = "Crowd Level: Weekend vs Weekday"
 
-fig2, ax2 = plt.subplots(figsize=(8, 4))
-bars = ax2.bar(factor_crowd.iloc[:,0], factor_crowd["crowd_level_pct"], color=["#ff7f0e", "#2ca02c"])
-ax2.set_ylim(0,100)
-ax2.set_ylabel("Average Crowd Level (%)")
-ax2.set_title(title)
-for bar in bars:
-    h = bar.get_height()
-    ax2.text(bar.get_x()+bar.get_width()/2, h+1, f"{h:.0f}%", ha="center")
-st.pyplot(fig2)
+# 只有≥2组才画图，否则提示文字，避免空白图
+if len(factor_crowd) < 2:
+    st.info("ℹ️ Not enough comparison groups under current filter. Try changing your filter (e.g. All Dates).")
+else:
+    fig2, ax2 = plt.subplots(figsize=(8, 4))
+    bars = ax2.bar(factor_crowd[group_col], factor_crowd["crowd_level_pct"], color=["#ff7f0e", "#2ca02c"])
+    ax2.set_ylim(0,100)
+    ax2.set_ylabel("Average Crowd Level (%)")
+    ax2.set_title(title)
+    for bar in bars:
+        h = bar.get_height()
+        ax2.text(bar.get_x()+bar.get_width()/2, h+1, f"{h:.0f}%", ha="center")
+    st.pyplot(fig2)
 
 # ---------------------- 热门设施等待时间表格（加列判断） ----------------------
 st.markdown("### Top Rides: Average Wait Time")
