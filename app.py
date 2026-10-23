@@ -68,7 +68,7 @@ elif selected_special_date == "Special Events Only":
 
 filtered_ride = ride_df[ride_df["park_name"] == selected_park].copy() if "park_name" in ride_df.columns else ride_df
 
-# ========== 【重点增加：空数据保护，防止崩溃】 ==========
+# 空数据保护
 if len(filtered_calendar) == 0:
     st.warning("⚠️ No data matches your filter selection. Please change date range, park or special date filter.")
     st.stop()
@@ -80,19 +80,30 @@ col1, col2, col3 = st.columns(3)
 avg_crowd = filtered_calendar["crowd_level_pct"].mean()
 avg_operating_hours = (filtered_calendar["operating_minutes"].mean()) / 60
 
-# 设施可用率
-total_rides = filtered_ride["ride_name"].nunique()
-operational_rides = filtered_ride[filtered_ride["status"] == "operational"]["ride_name"].nunique()
-operation_rate = (operational_rides / total_rides) * 100 if total_rides > 0 else 0
+# ========== FIX: 先判断status列是否存在，不存在就替换成别的KPI ==========
+total_rides = filtered_ride["ride_name"].nunique() if "ride_name" in filtered_ride.columns else 0
+operation_rate = 0
+if "status" in filtered_ride.columns:
+    operational_rides = filtered_ride[filtered_ride["status"] == "operational"]["ride_name"].nunique()
+    operation_rate = (operational_rides / total_rides) * 100 if total_rides > 0 else 0
+else:
+    # 没有status列，改用【平均等待时间】作为第三个KPI兜底
+    if "wait_time_min" in filtered_ride.columns and len(filtered_ride) > 0:
+        avg_wait = filtered_ride["wait_time_min"].mean()
+    else:
+        avg_wait = 0
 
 with col1:
     st.metric("Avg Crowd Level (%)", f"{avg_crowd:.0f}%")
 with col2:
     st.metric("Avg Daily Operating Hours", f"{avg_operating_hours:.1f} hrs")
 with col3:
-    st.metric("Ride Operational Rate", f"{operation_rate:.0f}%")
+    if "status" in filtered_ride.columns:
+        st.metric("Ride Operational Rate", f"{operation_rate:.0f}%")
+    else:
+        st.metric("Avg Ride Wait Time (min)", f"{avg_wait:.0f}")
 
-# ========== 【新增：决策推荐面板（作业得分核心！）】 ==========
+# ---------------------- 决策推荐面板 ----------------------
 st.subheader("Operation Recommendation")
 if avg_crowd >= 70:
     st.error("🔴 HIGH CROWD ALERT: Average crowd level over 70%. Recommend: increase staff, extend ride hours, deploy crowd control team.")
@@ -138,9 +149,9 @@ for bar in bars:
     ax2.text(bar.get_x()+bar.get_width()/2, h+1, f"{h:.0f}%", ha="center")
 st.pyplot(fig2)
 
-# ========== 【新增：热门设施等待时间表格（迪士尼场景加分项）】 ==========
+# ---------------------- 热门设施等待时间表格（加列判断） ----------------------
 st.markdown("### Top Rides: Average Wait Time")
-if "wait_time_min" in filtered_ride.columns:
+if "wait_time_min" in filtered_ride.columns and "ride_name" in filtered_ride.columns:
     ride_wait = filtered_ride.groupby("ride_name")["wait_time_min"].mean().sort_values(ascending=False).head(8).reset_index()
     st.dataframe(ride_wait, use_container_width=True)
 else:
