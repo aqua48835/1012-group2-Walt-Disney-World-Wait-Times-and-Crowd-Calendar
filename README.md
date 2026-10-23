@@ -16,9 +16,7 @@ This Streamlit dashboard is built for Disney park decision-makers and park plann
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
-给你直接可用的 README.md（适配你这个 Disney 等待时间看板，满足 Assignment4 Part1 要求，包含Design Decisions，老师重点要看这个）
-复制全部，粘贴到你的 README.md 里，直接替换原来那一行标题。
-markdown
+
 # Walt Disney World Wait Times & Crowd Calendar Dashboard
 > BANA409 Assignment 4 Part 1: Data App
 
