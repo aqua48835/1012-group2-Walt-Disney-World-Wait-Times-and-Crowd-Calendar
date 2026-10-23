@@ -7,7 +7,7 @@ import numpy as np
 plt.rcParams['axes.unicode_minus'] = False  # 确保负号正常显示
 
 # 页面标题+小组名称
-st.title("Disney World Park Operation Dashboard | Group: 1012-group2")
+st.title("Disney World Park Operation Dashboard | Xiajingying")
 # 核心功能说明
 st.caption("For: Park Operations Manager | Purpose: Adjust staffing & ride hours based on real-time crowd levels")
 
